@@ -1,0 +1,34 @@
+{
+  "name": "hubot-signal",
+  "version": "0.0.1",
+  "description": "The Signal adapter for Hubot",
+  "main": "src/signal.coffee",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jheretic/hubot-signal.git"
+  },
+  "keywords": [
+    "github",
+    "hubot",
+    "adapter",
+    "signal",
+    "textsecure"
+  ],
+  "author": "Josh King <jking@chambana.net>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jheretic/hubot-signal/issues"
+  },
+  "homepage": "https://github.com/jheretic/hubot-signal#readme"
+  "dependencies": {
+  },
+  "peerDependencies": {
+    "hubot": ">=2.0"
+  },
+  "devDependencies": {
+    "coffee-script": ">=1.2.0"
+  }
+}
