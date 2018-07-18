@@ -1,5 +1,5 @@
 {
-  "name": "hubot-signal",
+  "name": "hubot-signal-service",
   "version": "0.0.1",
   "description": "The Signal adapter for Hubot",
   "main": "src/signal.coffee",
@@ -22,13 +22,12 @@
   "bugs": {
     "url": "https://github.com/jheretic/hubot-signal/issues"
   },
-  "homepage": "https://github.com/jheretic/hubot-signal#readme"
-  "dependencies": {
-  },
+  "homepage": "https://github.com/jheretic/hubot-signal#readme",
+  "dependencies": {},
   "peerDependencies": {
     "hubot": ">=2.0"
   },
   "devDependencies": {
-    "coffee-script": ">=1.2.0"
+    "coffeescript": ">=1.2.0"
   }
 }
