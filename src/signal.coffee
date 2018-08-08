@@ -17,7 +17,7 @@ class Signal extends Adapter
     @server_url = if process.env.NODE_ENV == production then PRODUCTION_SERVER_URL else STAGING_SERVER_URL
     @attachment_url = if process.env.NODE_ENV == production then PRODUCTION_ATTACHMENT_URL else STAGING_ATTACHMENT_URL
     @store = new ProtocolStore
-    @accountManager = new Api.AccountManager(@server_url, @number, @password, @store)
+    @accountManager = new Api.AccountManager @server_url, @number, @password, @store
     @robot.logger.info "Constructor"
 
   send: (envelope, strings...) ->
@@ -28,6 +28,24 @@ class Signal extends Adapter
 
   run: ->
     @robot.logger.info "Run"
+    unless process.env.HUBOT_SIGNAL_CODE?
+      @accountManager.requestSMSVerification @number
+        .catch @robot.logger.error
+      @robot.logger.info "Sending verification code to #{@number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE."
+      return
+
+    unless @store.get?('profileKey')
+      @accountManager.registerSingleDevice @number process.env.HUBOT_SIGNAL_CODE
+        .then (result) ->
+          @robot.logger.info result
+        .catch @robot.logger.error
+
+
+
+
+
+
+
     @emit "connected"
     user = new User 1001, name: 'Signal User'
     message = new TextMessage user, 'Some Signal Message', 'MSG-001'
