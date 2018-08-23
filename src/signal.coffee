@@ -1,3 +1,4 @@
+ByteBuffer = require('bytebuffer')
 Api = require('libsignal-service-javascript')
 ProtocolStore = require('./protocol_store.js')
 
@@ -40,17 +41,11 @@ class Signal extends Adapter
           @robot.logger.info result
         .catch @robot.logger.error
 
-
-
-
-
-
-
+    @messageSender = new Api.MessageSender @server_url, @number, @password, @attachment_url, @store
+    signaling_key = ByteBuffer.wrap @store.get('signaling_key'), "binary"
+      .toArrayBuffer
+    @messageReceiver = new Api.MessageReceiver @server_url, @number, @password, @attachment_url, @signaling_key, @store
     @emit "connected"
-    user = new User 1001, name: 'Signal User'
-    message = new TextMessage user, 'Some Signal Message', 'MSG-001'
-    @robot.receive message
-
 
 exports.use = (robot) ->
   new Signal robot
