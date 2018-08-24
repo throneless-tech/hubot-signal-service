@@ -1,5 +1,5 @@
 ByteBuffer = require('bytebuffer')
-Api = require('libsignal-service-javascript')
+Api = require('libsignal-service')
 ProtocolStore = require('./protocol_store.js')
 
 PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org"

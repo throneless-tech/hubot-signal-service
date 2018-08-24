@@ -23,7 +23,10 @@
     "url": "https://github.com/jheretic/hubot-signal/issues"
   },
   "homepage": "https://github.com/jheretic/hubot-signal#readme",
-  "dependencies": {},
+  "dependencies": {
+    "bytebuffer": "^5.0.1",
+    "libsignal-service": "~/src/ionosphere/libsignal-service-javascript"
+  },
   "peerDependencies": {
     "hubot": ">=2.0"
   },
