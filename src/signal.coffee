@@ -1,6 +1,7 @@
 ByteBuffer = require('bytebuffer')
 Api = require('libsignal-service')
 ProtocolStore = require('./protocol_store.js')
+Adapter = require 'hubot'
 
 PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org"
 STAGING_SERVER_URL = "https://textsecure-service-staging.whispersystems.org"

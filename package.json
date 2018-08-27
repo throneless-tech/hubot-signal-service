@@ -2,7 +2,7 @@
   "name": "hubot-signal-service",
   "version": "0.0.1",
   "description": "The Signal adapter for Hubot",
-  "main": "src/signal.coffee",
+  "main": "src/signal.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -25,7 +25,9 @@
   "homepage": "https://github.com/jheretic/hubot-signal#readme",
   "dependencies": {
     "bytebuffer": "^5.0.1",
-    "libsignal-service": "~/src/ionosphere/libsignal-service-javascript"
+    "hubot": "^3.1.1",
+    "libsignal-service": "~/src/ionosphere/libsignal-service-javascript",
+    "signal-protocol": "^0.1.3"
   },
   "peerDependencies": {
     "hubot": ">=2.0"
