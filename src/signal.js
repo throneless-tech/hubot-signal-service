@@ -1,0 +1,91 @@
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+const ByteBuffer = require('bytebuffer');
+const Api = require('libsignal-service');
+const ProtocolStore = require('./protocol_store.js');
+const Robot = require('hubot').Robot;
+const Adapter = require('hubot').Adapter;
+
+const PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org";
+const STAGING_SERVER_URL = "https://textsecure-service-staging.whispersystems.org";
+const PRODUCTION_ATTACHMENT_URL = "https://whispersystems-textsecure-attachments.s3.amazonaws.com";
+const STAGING_ATTACHMENT_URL = "https://whispersystems-textsecure-attachments-staging.s3.amazonaws.com";
+
+class Signal extends Adapter {
+
+  //constructor() {
+  //  super(...arguments);
+  //  this.number = process.env.HUBOT_SIGNAL_NUMBER;
+  //  this.password = process.env.HUBOT_SIGNAL_PASSWORD;
+  //  this.server_url = process.env.NODE_ENV === 'production' ? PRODUCTION_SERVER_URL : STAGING_SERVER_URL;
+  //  this.attachment_url = process.env.NODE_ENV === 'production' ? PRODUCTION_ATTACHMENT_URL : STAGING_ATTACHMENT_URL;
+  //  //this.store = new ProtocolStore(this.robot.brain);
+  //  //this.accountManager = new Api.AccountManager(this.server_url, this.number, this.password, this.store);
+  //  this.robot.logger.info("Constructed!");
+  //}
+
+  send(envelope, ...strings) {
+    if ((envelope.room == null)) {
+      this.robot.logger.error("Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number.");
+      return;
+    }
+    const text = strings.join();
+    const now = Date.now();
+    this.messageSender
+      .sendToNumber(envelope.room, text, now, null, 0, this.store.get('profileKey'))
+      .then(function(result) {
+        return this.robot.logger.info("result");
+      })
+      .catch(this.robot.logger.error);
+    this.robot.logger.info("Send");
+  }
+
+  reply(envelope, ...strings) {
+    if ((envelope.room == null)) {
+      this.robot.logger.error("Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number.");
+      return;
+    }
+    const text = strings.join();
+    const now = Date.now();
+    this.messageSender
+      .sendToNumber(envelope.room, text, now, null, 0, this.store.get('profileKey'))
+      .then(function(result) {
+        return this.robot.logger.info(result);
+      })
+      .catch(this.robot.logger.error);
+    this.robot.logger.info("Reply");
+  }
+
+  run() {
+    this.robot.logger.info("Run");
+    if (process.env.HUBOT_SIGNAL_CODE == null) {
+      this.accountManager
+        .requestSMSVerification(this.number)
+        .catch(this.robot.logger.error);
+      this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
+      return;
+    }
+
+    if (!(typeof this.store.get === 'function' ? this.store.get('profileKey') : undefined)) {
+      this.accountManager
+        .registerSingleDevice(this.number(process.env.HUBOT_SIGNAL_CODE))
+        .then(function(result) {
+          return this.robot.logger.info(result);
+        })
+        .catch(this.robot.logger.error);
+    }
+
+    this.messageSender = new Api.MessageSender(this.server_url, this.number, this.password, this.attachment_url, this.store);
+    const signaling_key = ByteBuffer
+      .wrap(this.store.get('signaling_key'), "binary")
+      .toArrayBuffer;
+    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number, this.password, this.attachment_url, this.signaling_key, this.store);
+    this.emit("connected");
+  }
+}
+
+exports.use = robot => new Signal(robot);
