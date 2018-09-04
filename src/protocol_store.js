@@ -135,6 +135,7 @@ Session.prototype = {
 
 function SignalProtocolStore(brain) {
   this.store = brain;
+  console.log(this.store);
 }
 
 SignalProtocolStore.prototype = {
@@ -178,11 +179,14 @@ SignalProtocolStore.prototype = {
   put: function(key, value) {
     if (value === undefined) throw new Error("Tried to store undefined");
     this.store.set("" + key, helpers.jsonThing(value));
+    this.store.save();
+    console.log("Put key: " + key);
     //localStorage.setItem("" + key, value);
   },
 
   get: function(key, defaultValue) {
     var value = this.store.get("" + key);
+    console.log("Get key: " + key);
     if (value === null) return defaultValue;
     return JSON.parse(value);
     //return value;
@@ -190,6 +194,7 @@ SignalProtocolStore.prototype = {
 
   remove: function(key) {
     this.store.remove("" + key);
+    this.store.save();
   },
 
   isTrustedIdentity: function(identifier, identityKey, direction) {

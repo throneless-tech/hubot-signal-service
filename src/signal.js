@@ -7,8 +7,7 @@
 const ByteBuffer = require('bytebuffer');
 const Api = require('libsignal-service');
 const ProtocolStore = require('./protocol_store.js');
-const Robot = require('hubot').Robot;
-const Adapter = require('hubot').Adapter;
+const Adapter = require('hubot/es2015').Adapter;
 
 const PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org";
 const STAGING_SERVER_URL = "https://textsecure-service-staging.whispersystems.org";
@@ -17,16 +16,16 @@ const STAGING_ATTACHMENT_URL = "https://whispersystems-textsecure-attachments-st
 
 class Signal extends Adapter {
 
-  //constructor() {
-  //  super(...arguments);
-  //  this.number = process.env.HUBOT_SIGNAL_NUMBER;
-  //  this.password = process.env.HUBOT_SIGNAL_PASSWORD;
-  //  this.server_url = process.env.NODE_ENV === 'production' ? PRODUCTION_SERVER_URL : STAGING_SERVER_URL;
-  //  this.attachment_url = process.env.NODE_ENV === 'production' ? PRODUCTION_ATTACHMENT_URL : STAGING_ATTACHMENT_URL;
-  //  //this.store = new ProtocolStore(this.robot.brain);
-  //  //this.accountManager = new Api.AccountManager(this.server_url, this.number, this.password, this.store);
-  //  this.robot.logger.info("Constructed!");
-  //}
+  constructor(...args) {
+    super(...args);
+    this.number = process.env.HUBOT_SIGNAL_NUMBER;
+    this.password = process.env.HUBOT_SIGNAL_PASSWORD;
+    this.server_url = process.env.NODE_ENV === 'production' ? PRODUCTION_SERVER_URL : STAGING_SERVER_URL;
+    this.attachment_url = process.env.NODE_ENV === 'production' ? PRODUCTION_ATTACHMENT_URL : STAGING_ATTACHMENT_URL;
+    this.store = new ProtocolStore(this.robot.brain);
+    this.accountManager = new Api.AccountManager(this.server_url, this.number, this.password, this.store);
+    this.robot.logger.info("Constructed!");
+  }
 
   send(envelope, ...strings) {
     if ((envelope.room == null)) {
@@ -71,8 +70,9 @@ class Signal extends Adapter {
     }
 
     if (!(typeof this.store.get === 'function' ? this.store.get('profileKey') : undefined)) {
+      this.robot.logger.info("Registering account.");
       this.accountManager
-        .registerSingleDevice(this.number(process.env.HUBOT_SIGNAL_CODE))
+        .registerSingleDevice(this.number, process.env.HUBOT_SIGNAL_CODE)
         .then(function(result) {
           return this.robot.logger.info(result);
         })
@@ -80,10 +80,13 @@ class Signal extends Adapter {
     }
 
     this.messageSender = new Api.MessageSender(this.server_url, this.number, this.password, this.attachment_url, this.store);
-    const signaling_key = ByteBuffer
-      .wrap(this.store.get('signaling_key'), "binary")
-      .toArrayBuffer;
-    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number, this.password, this.attachment_url, this.signaling_key, this.store);
+    const key = this.store.get("signaling_key");
+    this.robot.logger.info(key);
+    const signaling_key = ByteBuffer.wrap(
+      this.store.get("signaling_key"),
+      "binary"
+    ).toArrayBuffer();
+    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number, this.password, this.attachment_url, signaling_key, this.store);
     this.emit("connected");
   }
 }
