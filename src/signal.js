@@ -6,7 +6,8 @@
  */
 const ByteBuffer = require('bytebuffer');
 const Api = require('libsignal-service');
-const ProtocolStore = require('./protocol_store.js');
+//const ProtocolStore = require('./protocol_store.js');
+const ProtocolStore = require('./LocalSignalProtocolStore.js');
 const Adapter = require('hubot/es2015').Adapter;
 
 const PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org";
@@ -22,7 +23,8 @@ class Signal extends Adapter {
     this.password = process.env.HUBOT_SIGNAL_PASSWORD;
     this.server_url = process.env.NODE_ENV === 'production' ? PRODUCTION_SERVER_URL : STAGING_SERVER_URL;
     this.attachment_url = process.env.NODE_ENV === 'production' ? PRODUCTION_ATTACHMENT_URL : STAGING_ATTACHMENT_URL;
-    this.store = new ProtocolStore(this.robot.brain);
+    //this.store = new ProtocolStore(this.robot.brain);
+    this.store = new ProtocolStore('./scratch');
     this.accountManager = new Api.AccountManager(this.server_url, this.number, this.password, this.store);
     this.robot.logger.info("Constructed!");
   }
@@ -59,24 +61,32 @@ class Signal extends Adapter {
     this.robot.logger.info("Reply");
   }
 
+  _request() {
+    return this.accountManager
+      .requestSMSVerification(this.number)
+      .catch(this.robot.logger.error);
+    this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
+  }
+
+  _register() {
+    this.robot.logger.info("Registering account.");
+    return this.accountManager
+      .registerSingleDevice(this.number, process.env.HUBOT_SIGNAL_CODE)
+      .then(function(result) {
+        this.robot.logger.info(result);
+      })
+      .catch(this.robot.logger.error);
+  }
+
   run() {
     this.robot.logger.info("Run");
     if (process.env.HUBOT_SIGNAL_CODE == null) {
-      this.accountManager
-        .requestSMSVerification(this.number)
-        .catch(this.robot.logger.error);
-      this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
-      return;
+      this._request();
+      process.exit();
     }
 
     if (!(typeof this.store.get === 'function' ? this.store.get('profileKey') : undefined)) {
-      this.robot.logger.info("Registering account.");
-      this.accountManager
-        .registerSingleDevice(this.number, process.env.HUBOT_SIGNAL_CODE)
-        .then(function(result) {
-          return this.robot.logger.info(result);
-        })
-        .catch(this.robot.logger.error);
+      Promise.resolve(this._register());
     }
 
     this.messageSender = new Api.MessageSender(this.server_url, this.number, this.password, this.attachment_url, this.store);
@@ -86,8 +96,8 @@ class Signal extends Adapter {
       this.store.get("signaling_key"),
       "binary"
     ).toArrayBuffer();
-    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number, this.password, this.attachment_url, signaling_key, this.store);
-    this.emit("connected");
+    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number.concat(".1"), this.password, this.attachment_url, signaling_key, this.store);
+    //this.emit("connected");
   }
 }
 
