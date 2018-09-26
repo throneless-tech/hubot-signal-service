@@ -9,6 +9,7 @@ const Api = require('libsignal-service');
 //const ProtocolStore = require('./protocol_store.js');
 const ProtocolStore = require('./LocalSignalProtocolStore.js');
 const Adapter = require('hubot/es2015').Adapter;
+const asyncOnExit = require('async-on-exit');
 
 const PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org";
 const STAGING_SERVER_URL = "https://textsecure-service-staging.whispersystems.org";
@@ -62,10 +63,10 @@ class Signal extends Adapter {
   }
 
   _request() {
+    this.robot.logger.info("Requesting code.");
     return this.accountManager
       .requestSMSVerification(this.number)
       .catch(this.robot.logger.error);
-    this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
   }
 
   _register() {
@@ -79,9 +80,11 @@ class Signal extends Adapter {
   }
 
   run() {
-    this.robot.logger.info("Run");
+    this.robot.logger.info("Running adapter.");
     if (process.env.HUBOT_SIGNAL_CODE == null) {
-      this._request();
+      const request = this._request.bind(this);
+      asyncOnExit(request, false);
+      this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
       process.exit();
     }
 
@@ -97,7 +100,7 @@ class Signal extends Adapter {
       "binary"
     ).toArrayBuffer();
     this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number.concat(".1"), this.password, this.attachment_url, signaling_key, this.store);
-    //this.emit("connected");
+    this.emit("connected");
   }
 }
 

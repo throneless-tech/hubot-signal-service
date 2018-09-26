@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/jheretic/hubot-signal-service#readme",
   "dependencies": {
+    "async-on-exit": "^0.1.0",
     "bytebuffer": "^5.0.1",
     "eslint": "^3.19.0",
     "hubot": "^3.1.1",
