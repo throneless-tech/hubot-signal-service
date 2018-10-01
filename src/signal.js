@@ -4,6 +4,8 @@
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
+'use strict';
+
 const ByteBuffer = require('bytebuffer');
 const Api = require('libsignal-service');
 //const ProtocolStore = require('./protocol_store.js');
@@ -65,8 +67,8 @@ class Signal extends Adapter {
   _request() {
     this.robot.logger.info("Requesting code.");
     return this.accountManager
-      .requestSMSVerification(this.number)
-      .catch(this.robot.logger.error);
+      .requestSMSVerification(this.number);
+    //  .catch(this.robot.logger.error);
   }
 
   _register() {
@@ -80,12 +82,19 @@ class Signal extends Adapter {
   }
 
   run() {
-    this.robot.logger.info("Running adapter.");
+    const logger = this.robot.logger;
+    const number = this.number;
+    logger.info("Running adapter.");
     if (process.env.HUBOT_SIGNAL_CODE == null) {
-      const request = this._request.bind(this);
-      asyncOnExit(request, false);
-      this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
-      process.exit();
+      //const request = this._request.bind(this);
+      //asyncOnExit(request, false);
+      Promise.resolve(this._request()).then(function () {
+        logger.info(`Sending verification code to ${number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
+        process.exit(0);
+      }).catch(function(err) {
+        logger.error('Error requesting verification code: ', err.stack);
+        process.exit(1);
+      })
     }
 
     if (!(typeof this.store.get === 'function' ? this.store.get('profileKey') : undefined)) {
@@ -104,4 +113,4 @@ class Signal extends Adapter {
   }
 }
 
-exports.use = robot => new Signal(robot);
+exports.use = robot => new Signal(robot)
