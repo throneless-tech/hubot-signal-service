@@ -108,7 +108,7 @@ class Signal extends Adapter {
       this.store.get("signaling_key"),
       "binary"
     ).toArrayBuffer();
-    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number.concat(".1"), this.password, this.attachment_url, signaling_key, this.store);
+    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number.concat(".1"), this.password, signaling_key, this.store);
     this.emit("connected");
   }
 }
