@@ -11,12 +11,8 @@ const Api = require('libsignal-service');
 //const ProtocolStore = require('./protocol_store.js');
 const ProtocolStore = require('./LocalSignalProtocolStore.js');
 const Adapter = require('hubot/es2015').Adapter;
-const asyncOnExit = require('async-on-exit');
-
-const PRODUCTION_SERVER_URL = "https://textsecure-service.whispersystems.org";
-const STAGING_SERVER_URL = "https://textsecure-service-staging.whispersystems.org";
-const PRODUCTION_ATTACHMENT_URL = "https://whispersystems-textsecure-attachments.s3.amazonaws.com";
-const STAGING_ATTACHMENT_URL = "https://whispersystems-textsecure-attachments-staging.s3.amazonaws.com";
+const TextMessage = require('hubot/es2015').TextMessage;
+const User = require('hubot/es2015').User;
 
 class Signal extends Adapter {
 
@@ -24,11 +20,9 @@ class Signal extends Adapter {
     super(...args);
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
     this.password = process.env.HUBOT_SIGNAL_PASSWORD;
-    this.server_url = process.env.NODE_ENV === 'production' ? PRODUCTION_SERVER_URL : STAGING_SERVER_URL;
-    this.attachment_url = process.env.NODE_ENV === 'production' ? PRODUCTION_ATTACHMENT_URL : STAGING_ATTACHMENT_URL;
     //this.store = new ProtocolStore(this.robot.brain);
     this.store = new ProtocolStore('./scratch');
-    this.accountManager = new Api.AccountManager(this.server_url, this.number, this.password, this.store);
+    this.accountManager = new Api.AccountManager(this.number, this.password, this.store);
     this.robot.logger.info("Constructed!");
   }
 
@@ -40,7 +34,7 @@ class Signal extends Adapter {
     const text = strings.join();
     const now = Date.now();
     this.messageSender
-      .sendToNumber(envelope.room, text, now, null, 0, this.store.get('profileKey'))
+      .sendMessageToNumber(envelope.room, text, null, now, undefined, this.store.get('profileKey'))
       .then(function(result) {
         return this.robot.logger.info("result");
       })
@@ -56,7 +50,7 @@ class Signal extends Adapter {
     const text = strings.join();
     const now = Date.now();
     this.messageSender
-      .sendToNumber(envelope.room, text, now, null, 0, this.store.get('profileKey'))
+      .sendMessageToNumber(envelope.room, text, null, now, undefined, this.store.get('profileKey'))
       .then(function(result) {
         return this.robot.logger.info(result);
       })
@@ -74,42 +68,70 @@ class Signal extends Adapter {
   _register() {
     this.robot.logger.info("Registering account.");
     return this.accountManager
-      .registerSingleDevice(this.number, process.env.HUBOT_SIGNAL_CODE)
-      .then(function(result) {
-        this.robot.logger.info(result);
-      })
-      .catch(this.robot.logger.error);
+      .registerSingleDevice(this.number, process.env.HUBOT_SIGNAL_CODE);
+      //.then(function(result) {
+      //  this.robot.logger.info(result);
+      //})
+      //.catch(this.robot.logger.error);
+  }
+
+  _receive(userId, text, msgId, group) {
+    if (group == null) {
+      group = userId;
+    }
+    const user = this.robot.brain.userForId(userId, { room: group });
+    const message = new TextMessage(user, text, msgId);
+    console.log(message);
+    if (message instanceof TextMessage) {
+      console.log("Created TextMessage");
+    }
+    this.robot.receive(message);
+  }
+
+  _connect() {
+    this.robot.logger.info("Connecting to service.");
+    const signalingKey = this.store.get("signaling_key");
+    if (!signalingKey) {
+      this.robot.logger.error("No signaling key is defined, perhaps we didn't successfully register?");
+      process.exit(1);
+    }
+
+    this.messageSender = new Api.MessageSender(this.number, this.password, this.store);
+    const signalingKeyBytes = ByteBuffer.wrap(
+      signalingKey,
+      "binary"
+    ).toArrayBuffer();
+    this.messageReceiver = new Api.MessageReceiver(this.number.concat(".1"), this.password, signalingKeyBytes, this.store);
+    this.messageReceiver.addEventListener("message", ev => {
+      const id = ev.data.source.toString();
+      this._receive(id, ev.data.message.body.toString(), ev.data.timestamp.toString(), ev.data.message.group);
+    });
+    this.emit("connected");
   }
 
   run() {
-    const logger = this.robot.logger;
-    const number = this.number;
-    logger.info("Running adapter.");
-    if (process.env.HUBOT_SIGNAL_CODE == null) {
-      //const request = this._request.bind(this);
-      //asyncOnExit(request, false);
-      Promise.resolve(this._request()).then(function () {
-        logger.info(`Sending verification code to ${number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
-        process.exit(0);
-      }).catch(function(err) {
-        logger.error('Error requesting verification code: ', err.stack);
-        process.exit(1);
-      })
+    this.robot.logger.info("Running adapter.");
+    if (!this.store.get('profileKey')) {
+      if (!process.env.HUBOT_SIGNAL_CODE) {
+        Promise.resolve(this._request()).then(result => {
+          this.robot.logger.info(`Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`);
+          process.exit(0);
+        }).catch(err => {
+          this.robot.logger.error('Error requesting verification code: ', err.stack);
+          process.exit(1);
+        });
+      } else {
+        Promise.resolve(this._register()).then(result => {
+          this.robot.logger.info(result);
+          this._connect();
+        }).catch(err => {
+          this.robot.logger.error('Error registering with service: ', err.stack);
+          process.exit(1);
+        })
+      }
+    } else {
+      this._connect();
     }
-
-    if (!(typeof this.store.get === 'function' ? this.store.get('profileKey') : undefined)) {
-      Promise.resolve(this._register());
-    }
-
-    this.messageSender = new Api.MessageSender(this.server_url, this.number, this.password, this.attachment_url, this.store);
-    const key = this.store.get("signaling_key");
-    this.robot.logger.info(key);
-    const signaling_key = ByteBuffer.wrap(
-      this.store.get("signaling_key"),
-      "binary"
-    ).toArrayBuffer();
-    this.messageReceiver = new Api.MessageReceiver(this.server_url, this.number.concat(".1"), this.password, signaling_key, this.store);
-    this.emit("connected");
   }
 }
 
