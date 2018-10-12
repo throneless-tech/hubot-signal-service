@@ -32,7 +32,7 @@ class Signal extends Adapter {
   }
 
   // @flow
-  send(envelope, strings: Array<string>) {
+  send(envelope, ...strings) {
     if (envelope.room == null) {
       this.robot.logger.error(
         "Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number."
@@ -109,12 +109,7 @@ class Signal extends Adapter {
       group = userId;
     }
     const user = this.robot.brain.userForId(userId, { room: group });
-    const message = new TextMessage(user, text, msgId);
-    console.log(message);
-    if (message instanceof TextMessage) {
-      console.log("Created TextMessage");
-    }
-    this.robot.receive(message);
+    this.robot.receive(new TextMessage(user, text, msgId));
   }
 
   // @flow
