@@ -15,6 +15,35 @@ const TextMessage = require("hubot/es2015").TextMessage;
 const User = require("hubot/es2015").User;
 
 // @flow
+class SignalMessage extends TextMessage {
+  // @flow
+  constructor(user, group, text, timestamp, attachments) {
+    super(user, text, timestamp);
+    this.attachments = attachments || [];
+    if (this.group) {
+      this.group = group.id;
+    }
+  }
+}
+
+// @flow
+class SignalResponse extends Response {
+  // @flow
+  sendAttachments(attachments, ...strings) {
+    this.robot.adapter._sendAttachments(this.envelope, attachments, ...strings);
+  }
+
+  // @flow
+  replyAttachments(attachments, ...strings) {
+    this.robot.adapter._replyAttachments(
+      this.envelope,
+      attachments,
+      ...strings
+    );
+  }
+}
+
+// @flow
 class Signal extends Adapter {
   // @flow
   constructor(args?: Array<mixed>): void {
@@ -109,7 +138,7 @@ class Signal extends Adapter {
       group = userId;
     }
     const user = this.robot.brain.userForId(userId, { room: group });
-    this.robot.receive(new TextMessage(user, text, msgId));
+    this.robot.receive(new SignalMessage(user, text, msgId));
   }
 
   // @flow
@@ -122,6 +151,8 @@ class Signal extends Adapter {
       );
       process.exit(1);
     }
+
+    this.robot.Response = SignalResponse;
 
     this.messageSender = new Api.MessageSender(
       this.number,
