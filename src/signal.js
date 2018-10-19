@@ -13,6 +13,7 @@ const ProtocolStore = require("./LocalSignalProtocolStore.js");
 const Adapter = require("hubot/es2015").Adapter;
 const TextMessage = require("hubot/es2015").TextMessage;
 const User = require("hubot/es2015").User;
+const Response = require("hubot/es2015").Response;
 
 // @flow
 class SignalMessage extends TextMessage {
@@ -30,16 +31,12 @@ class SignalMessage extends TextMessage {
 class SignalResponse extends Response {
   // @flow
   sendAttachments(attachments, ...strings) {
-    this.robot.adapter._sendAttachments(this.envelope, attachments, ...strings);
+    this.robot.adapter._send(this.envelope, attachments, ...strings);
   }
 
   // @flow
   replyAttachments(attachments, ...strings) {
-    this.robot.adapter._replyAttachments(
-      this.envelope,
-      attachments,
-      ...strings
-    );
+    this.robot.adapter._reply(this.envelope, attachments, ...strings);
   }
 }
 
@@ -62,51 +59,18 @@ class Signal extends Adapter {
 
   // @flow
   send(envelope, ...strings) {
-    if (envelope.room == null) {
-      this.robot.logger.error(
-        "Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number."
-      );
-      return;
-    }
-    const text = strings.join();
-    const now = Date.now();
-    const group = this.store.getGroup(envelope.room);
-    if (group === null || group === undefined) {
-      this.robot.logger.debug("Sending direct message to " + envelope.room);
-      this.messageSender
-        .sendMessageToNumber(
-          envelope.room,
-          text,
-          null,
-          now,
-          undefined,
-          this.store.get("profileKey")
-        )
-        .then(function(result) {
-          return this.robot.logger.debug(result);
-        })
-        .catch(this.robot.logger.error);
-    } else {
-      this.robot.logger.debug("Sending message to group " + envelope.room);
-      this.messageSender
-        .sendMessageToGroup(
-          envelope.room,
-          text,
-          null,
-          now,
-          undefined,
-          this.store.get("profileKey")
-        )
-        .then(function(result) {
-          return this.robot.logger.debug(result);
-        })
-        .catch(this.robot.logger.error);
-    }
+    this._send(envelope, [], ...strings);
     this.robot.logger.debug("Sent!");
   }
 
   // @flow
   reply(envelope, ...strings) {
+    this._send(envelope, [], ...strings);
+    this.robot.logger.debug("Replied!");
+  }
+
+  // @flow
+  _send(envelope, attachments, ...strings) {
     if (envelope.room == null) {
       this.robot.logger.error(
         "Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number."
@@ -122,7 +86,7 @@ class Signal extends Adapter {
         .sendMessageToNumber(
           envelope.room,
           text,
-          null,
+          attachments || [],
           now,
           undefined,
           this.store.get("profileKey")
@@ -137,7 +101,7 @@ class Signal extends Adapter {
         .sendMessageToGroup(
           envelope.room,
           text,
-          null,
+          attachments || [],
           now,
           undefined,
           this.store.get("profileKey")
@@ -147,7 +111,6 @@ class Signal extends Adapter {
         })
         .catch(this.robot.logger.error);
     }
-    this.robot.logger.debug("Replied!");
   }
 
   // @flow
