@@ -8,8 +8,8 @@
 
 const ByteBuffer = require("bytebuffer");
 const Api = require("libsignal-service");
-//const ProtocolStore = require('./protocol_store.js');
-const ProtocolStore = require("./LocalSignalProtocolStore.js");
+const ProtocolStore = require("./protocol_store.js");
+//const ProtocolStore = require("./LocalSignalProtocolStore.js");
 const Adapter = require("hubot/es2015").Adapter;
 const TextMessage = require("hubot/es2015").TextMessage;
 const User = require("hubot/es2015").User;
@@ -47,8 +47,7 @@ class Signal extends Adapter {
     super(args);
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
     this.password = process.env.HUBOT_SIGNAL_PASSWORD;
-    //this.store = new ProtocolStore(this.robot.brain);
-    this.store = new ProtocolStore("./scratch");
+    this.store = new ProtocolStore(this.robot.brain);
     this.accountManager = new Api.AccountManager(
       this.number,
       this.password,
