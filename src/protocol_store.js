@@ -133,9 +133,9 @@ Session.prototype = {
   constructor: Session
 };
 
-function SignalProtocolStore(brain) {
-  this.store = brain;
-  console.log(this.store);
+function SignalProtocolStore(robot) {
+  this.robot = robot;
+  console.log(this.robot.brain);
 }
 
 SignalProtocolStore.prototype = {
@@ -160,13 +160,13 @@ SignalProtocolStore.prototype = {
   //put: function(key, value) {
   //  if (key === undefined || value === undefined || key === null || value === null)
   //    throw new Error("Tried to store undefined/null");
-  //  this.store[key] = value;
+  //  this.robot.brain[key] = value;
   //},
   //get: function(key, defaultValue) {
   //  if (key === null || key === undefined)
   //    throw new Error("Tried to get value for undefined/null key");
-  //  if (key in this.store) {
-  //    return this.store[key];
+  //  if (key in this.robot.brain) {
+  //    return this.robot.brain[key];
   //  } else {
   //    return defaultValue;
   //  }
@@ -174,18 +174,18 @@ SignalProtocolStore.prototype = {
   //remove: function(key) {
   //  if (key === null || key === undefined)
   //    throw new Error("Tried to remove value for undefined/null key");
-  //  delete this.store[key];
+  //  delete this.robot.brain[key];
   //},
   put: function(key, value) {
     if (value === undefined) throw new Error("Tried to store undefined");
-    this.store.set("" + key, helpers.jsonThing(value));
-    this.store.save();
+    this.robot.brain.set("" + key, helpers.jsonThing(value));
+    this.robot.brain.save();
     console.log("Put key: " + key);
     //localStorage.setItem("" + key, value);
   },
 
   get: function(key, defaultValue) {
-    var value = this.store.get("" + key);
+    var value = this.robot.brain.get("" + key);
     console.log("Get key: " + key);
     if (value === null) return defaultValue;
     return JSON.parse(value);
@@ -193,8 +193,8 @@ SignalProtocolStore.prototype = {
   },
 
   remove: function(key) {
-    this.store.remove("" + key);
-    this.store.save();
+    this.robot.brain.remove("" + key);
+    this.robot.brain.save();
   },
 
   isTrustedIdentity: function(identifier, identityKey, direction) {
@@ -317,7 +317,7 @@ SignalProtocolStore.prototype = {
     return Promise.resolve(this.remove("25519KeypreKey" + keyId));
   },
   clearPreKeyStore: function() {
-    for (id of this.store.data._private._keys) {
+    for (id of this.robot.brain.data._private._keys) {
       if (id.startsWith("25519KeypreKey")) {
         this.remove(id);
       }
@@ -341,7 +341,7 @@ SignalProtocolStore.prototype = {
   },
   loadSignedPreKeys: function() {
     var signedPreKeys = [];
-    for (id of this.store.data._private._keys) {
+    for (id of this.robot.brain.data._private._keys) {
       if (id.startsWith("25519KeysignedKey")) {
         var prekey = this.get(id);
         if (!(prekey.pubKey instanceof ArrayBuffer)) {
@@ -369,7 +369,7 @@ SignalProtocolStore.prototype = {
     return Promise.resolve(this.remove("25519KeysignedKey" + keyId));
   },
   clearSignedPreKeysStore: function() {
-    for (id of this.store.data._private._keys) {
+    for (id of this.robot.brain.data._private._keys) {
       if (id.startsWith("25519KeysignedKey")) {
         this.remove(id);
       }
@@ -381,7 +381,7 @@ SignalProtocolStore.prototype = {
       throw new Error("Tried to get device ids for undefined/null number");
     }
     var collection = [];
-    for (id of this.store.data._private._keys) {
+    for (id of this.robot.brain.data._private._keys) {
       if (id.startsWith("session" + number)) {
         collection.push(this.get(id).deviceId);
       }
@@ -405,7 +405,7 @@ SignalProtocolStore.prototype = {
     return Promise.resolve(this.remove("session" + identifier));
   },
   removeAllSessions: function(identifier) {
-    for (id of this.store.data._private._keys) {
+    for (id of this.robot.brain.data._private._keys) {
       if (id.startsWith("session" + identifier)) {
         this.remove(id);
       }
@@ -467,7 +467,7 @@ SignalProtocolStore.prototype = {
   // Not yet processed messages - for resiliency
   getAllUnprocessed: function() {
     var collection = [];
-    for (id of this.store.data._private._keys) {
+    for (id of this.robot.brain.data._private._keys) {
       if (id.startsWith("unprocessed")) {
         collection.push(this.get(id));
       }

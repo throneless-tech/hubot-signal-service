@@ -47,7 +47,7 @@ class Signal extends Adapter {
     super(args);
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
     this.password = process.env.HUBOT_SIGNAL_PASSWORD;
-    this.store = new ProtocolStore(this.robot.brain);
+    this.store = new ProtocolStore(this.robot);
     this.accountManager = new Api.AccountManager(
       this.number,
       this.password,
