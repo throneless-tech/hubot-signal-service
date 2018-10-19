@@ -70,20 +70,39 @@ class Signal extends Adapter {
     }
     const text = strings.join();
     const now = Date.now();
-    this.messageSender
-      .sendMessageToNumber(
-        envelope.room,
-        text,
-        null,
-        now,
-        undefined,
-        this.store.get("profileKey")
-      )
-      .then(function(result) {
-        return this.robot.logger.info("result");
-      })
-      .catch(this.robot.logger.error);
-    this.robot.logger.info("Send");
+    const group = this.store.getGroup(envelope.room);
+    if (group === null || group === undefined) {
+      this.robot.logger.debug("Sending direct message to " + envelope.room);
+      this.messageSender
+        .sendMessageToNumber(
+          envelope.room,
+          text,
+          null,
+          now,
+          undefined,
+          this.store.get("profileKey")
+        )
+        .then(function(result) {
+          return this.robot.logger.debug(result);
+        })
+        .catch(this.robot.logger.error);
+    } else {
+      this.robot.logger.debug("Sending message to group " + envelope.room);
+      this.messageSender
+        .sendMessageToGroup(
+          envelope.room,
+          text,
+          null,
+          now,
+          undefined,
+          this.store.get("profileKey")
+        )
+        .then(function(result) {
+          return this.robot.logger.debug(result);
+        })
+        .catch(this.robot.logger.error);
+    }
+    this.robot.logger.debug("Sent!");
   }
 
   // @flow
@@ -96,20 +115,39 @@ class Signal extends Adapter {
     }
     const text = strings.join();
     const now = Date.now();
-    this.messageSender
-      .sendMessageToNumber(
-        envelope.room,
-        text,
-        null,
-        now,
-        undefined,
-        this.store.get("profileKey")
-      )
-      .then(function(result) {
-        return this.robot.logger.info(result);
-      })
-      .catch(this.robot.logger.error);
-    this.robot.logger.info("Reply");
+    const group = this.store.getGroup(envelope.room);
+    if (group === null || group === undefined) {
+      this.robot.logger.debug("Sending direct message to " + envelope.room);
+      this.messageSender
+        .sendMessageToNumber(
+          envelope.room,
+          text,
+          null,
+          now,
+          undefined,
+          this.store.get("profileKey")
+        )
+        .then(function(result) {
+          return this.robot.logger.debug(result);
+        })
+        .catch(this.robot.logger.error);
+    } else {
+      this.robot.logger.debug("Sending message to group " + envelope.room);
+      this.messageSender
+        .sendMessageToGroup(
+          envelope.room,
+          text,
+          null,
+          now,
+          undefined,
+          this.store.get("profileKey")
+        )
+        .then(function(result) {
+          return this.robot.logger.debug(result);
+        })
+        .catch(this.robot.logger.error);
+    }
+    this.robot.logger.debug("Replied!");
   }
 
   // @flow
