@@ -143,7 +143,7 @@ class Signal extends Adapter {
 
   // @flow
   _connect() {
-    this.robot.logger.info("Connecting to service.");
+    this.robot.logger.debug("Connecting to service.");
     const signalingKey = this.store.get("signaling_key");
     if (!signalingKey) {
       this.robot.logger.error(
@@ -181,6 +181,7 @@ class Signal extends Adapter {
   }
 
   _run() {
+    this.robot.logger.debug("Received 'loaded' event, running adapter.");
     if (!this.store.get("profileKey")) {
       if (!process.env.HUBOT_SIGNAL_CODE) {
         Promise.resolve(this._request())
@@ -220,10 +221,10 @@ class Signal extends Adapter {
 
   // @flow
   run() {
-    this.robot.logger.info("Running adapter.");
+    this.robot.logger.debug("Loading signal-service adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
     this.robot.on("loaded", () => {
-      this._run();
+      this._run().bind(this);
     });
     // Lies!
     this.emit("connected");
