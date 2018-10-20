@@ -222,7 +222,9 @@ class Signal extends Adapter {
   run() {
     this.robot.logger.info("Running adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
-    this.robot.on("loaded", this._run());
+    this.robot.on("loaded", () => {
+      this._run();
+    });
     // Lies!
     this.emit("connected");
   }
