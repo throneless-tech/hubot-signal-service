@@ -178,12 +178,9 @@ class Signal extends Adapter {
         ev.data.message.group
       );
     });
-    this.emit("connected");
   }
 
-  // @flow
-  run() {
-    this.robot.logger.info("Running adapter.");
+  _run() {
     if (!this.store.get("profileKey")) {
       if (!process.env.HUBOT_SIGNAL_CODE) {
         Promise.resolve(this._request())
@@ -219,6 +216,15 @@ class Signal extends Adapter {
     } else {
       this._connect();
     }
+  }
+
+  // @flow
+  run() {
+    this.robot.logger.info("Running adapter.");
+    // We need to wait until the brain is loaded so we can grab keys.
+    this.robot.on("loaded", this._run());
+    // Lies!
+    this.emit("connected");
   }
 }
 
