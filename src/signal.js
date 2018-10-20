@@ -53,6 +53,7 @@ class Signal extends Adapter {
       this.password,
       this.store
     );
+    this.loaded = false;
     this.robot.logger.info("Constructed!");
   }
 
@@ -180,7 +181,9 @@ class Signal extends Adapter {
     });
   }
 
+  // @flow
   _run() {
+    this.loaded = true;
     this.robot.logger.debug("Received 'loaded' event, running adapter.");
     if (!this.store.get("profileKey")) {
       if (!process.env.HUBOT_SIGNAL_CODE) {
@@ -224,7 +227,7 @@ class Signal extends Adapter {
     this.robot.logger.debug("Loading signal-service adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
     this.robot.brain.on("loaded", () => {
-      this._run();
+      this.loaded || this._run();
     });
     // Lies!
     this.emit("connected");
