@@ -223,8 +223,8 @@ class Signal extends Adapter {
   run() {
     this.robot.logger.debug("Loading signal-service adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
-    this.robot.on("loaded", () => {
-      this._run().bind(this);
+    this.robot.brain.on("loaded", () => {
+      this._run();
     });
     // Lies!
     this.emit("connected");
