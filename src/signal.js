@@ -91,10 +91,12 @@ class Signal extends Adapter {
           undefined,
           this.store.get("profileKey")
         )
-        .then(function(result) {
-          return this.robot.logger.debug(result);
+        .then(result => {
+          this.robot.logger.debug(result);
         })
-        .catch(this.robot.logger.error);
+        .catch(err => {
+          this.robot.logger.error("Error sending direct message: ", err.stack);
+        });
     } else {
       this.robot.logger.debug("Sending message to group " + envelope.room);
       this.messageSender
@@ -106,10 +108,15 @@ class Signal extends Adapter {
           undefined,
           this.store.get("profileKey")
         )
-        .then(function(result) {
-          return this.robot.logger.debug(result);
+        .then(result => {
+          this.robot.logger.debug(result);
         })
-        .catch(this.robot.logger.error);
+        .catch(err => {
+          this.robot.logger.error(
+            "Error sending message to group: ",
+            err.stack
+          );
+        });
     }
   }
 
@@ -117,7 +124,6 @@ class Signal extends Adapter {
   _request() {
     this.robot.logger.info("Requesting code.");
     return this.accountManager.requestSMSVerification(this.number);
-    //  .catch(this.robot.logger.error);
   }
 
   // @flow
@@ -127,10 +133,6 @@ class Signal extends Adapter {
       this.number,
       process.env.HUBOT_SIGNAL_CODE
     );
-    //.then(function(result) {
-    //  this.robot.logger.info(result);
-    //})
-    //.catch(this.robot.logger.error);
   }
 
   // @flow
