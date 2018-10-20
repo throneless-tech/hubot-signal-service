@@ -79,7 +79,7 @@ class Signal extends Adapter {
     }
     const text = strings.join();
     const now = Date.now();
-    const group = this.store.getGroup(envelope.room);
+    const group = this.store.groupsGetGroup(envelope.room);
     if (group === null || group === undefined) {
       this.robot.logger.debug("Sending direct message to " + envelope.room);
       this.messageSender
