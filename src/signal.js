@@ -18,10 +18,10 @@ const Response = require("hubot/es2015").Response;
 // @flow
 class SignalMessage extends TextMessage {
   // @flow
-  constructor(user, group, text, timestamp, attachments) {
-    super(user, text, timestamp);
+  constructor(user, body, attachments, timestamp, group) {
+    super(user, body, timestamp);
     this.attachments = attachments || [];
-    if (this.group) {
+    if (group) {
       this.group = group.id;
     }
   }
@@ -134,12 +134,21 @@ class Signal extends Adapter {
   }
 
   // @flow
-  _receive(userId, text, msgId, group) {
-    if (group == null) {
-      group = userId;
+  _receive(source, body, attachments, timestamp, group) {
+    if (!group) {
+      // Prepend robot name to direct messages that don't include it.
+      const startOfText = body.indexOf("@") === 0 ? 1 : 0;
+      const robotIsNamed =
+        body.indexOf(this.robot.name) === startOfText ||
+        body.indexOf(this.robot.alias) === startOfText;
+      if (!robotIsNamed) {
+        body = `${this.robot.name} ${body}`;
+      }
     }
-    const user = this.robot.brain.userForId(userId, { room: group });
-    this.robot.receive(new SignalMessage(user, text, msgId));
+    const user = this.robot.brain.userForId(source);
+    this.robot.receive(
+      new SignalMessage(user, body, attachments, timestamp, group)
+    );
   }
 
   // @flow
@@ -171,10 +180,11 @@ class Signal extends Adapter {
       this.store
     );
     this.messageReceiver.addEventListener("message", ev => {
-      const id = ev.data.source.toString();
+      const source = ev.data.source.toString();
       this._receive(
-        id,
+        source,
         ev.data.message.body.toString(),
+        ev.data.message.attachments,
         ev.data.timestamp.toString(),
         ev.data.message.group
       );
