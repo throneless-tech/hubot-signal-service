@@ -1,20 +1,23 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+/**
+ * Hubot-signal is an adapter for the Hubot chatbot framework which allows a
+ * Hubot instance to communicate via the Signal messaging system.
  */
+
 "use strict";
 
 const ByteBuffer = require("bytebuffer");
 const Api = require("libsignal-service");
 const ProtocolStore = require("./protocol_store.js");
-//const ProtocolStore = require("./LocalSignalProtocolStore.js");
 const Adapter = require("hubot/es2015").Adapter;
 const TextMessage = require("hubot/es2015").TextMessage;
 const User = require("hubot/es2015").User;
 const Response = require("hubot/es2015").Response;
 
+/**
+ * An extension of Hubot's TextMessage to ensure attachments and group ID's
+ * are available to other external Hubot scripts that may want to use them.
+ * @class
+ */
 // @flow
 class SignalMessage extends TextMessage {
   // @flow
@@ -27,6 +30,11 @@ class SignalMessage extends TextMessage {
   }
 }
 
+/**
+ * An extension of Hubot's Response object which makes available methods for
+ * sending attachments to users.
+ * @class
+ */
 // @flow
 class SignalResponse extends Response {
   // @flow
@@ -40,6 +48,12 @@ class SignalResponse extends Response {
   }
 }
 
+/**
+ * An implementation of the Hubot class Adapter, this is loaded by Hubot at
+ * runtime and attempts to connect to the Signal messenger server. It passes
+ * the available Hubot Brain object to the Signal library for key storage.
+ * @class
+ */
 // @flow
 class Signal extends Adapter {
   // @flow
@@ -54,7 +68,6 @@ class Signal extends Adapter {
       this.store
     );
     this.loaded = false;
-    this.robot.logger.info("Constructed!");
   }
 
   // @flow
@@ -72,8 +85,11 @@ class Signal extends Adapter {
   // @flow
   _send(envelope, attachments, ...strings) {
     if (envelope.room == null) {
-      this.robot.logger.error(
-        "Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number."
+      this.emit(
+        "error",
+        new Error(
+          "Cannot send a message without a valid room. Envelopes should contain a room property set to a phone number."
+        )
       );
       return;
     }
@@ -95,7 +111,7 @@ class Signal extends Adapter {
           this.robot.logger.debug(result);
         })
         .catch(err => {
-          this.robot.logger.error("Error sending direct message: ", err.stack);
+          this.emit("error", err);
         });
     } else {
       this.robot.logger.debug("Sending message to group " + envelope.room);
@@ -112,10 +128,7 @@ class Signal extends Adapter {
           this.robot.logger.debug(result);
         })
         .catch(err => {
-          this.robot.logger.error(
-            "Error sending message to group: ",
-            err.stack
-          );
+          this.emit("error", err);
         });
     }
   }
@@ -158,12 +171,16 @@ class Signal extends Adapter {
     this.robot.logger.debug("Connecting to service.");
     const signalingKey = this.store.get("signaling_key");
     if (!signalingKey) {
-      this.robot.logger.error(
-        "No signaling key is defined, perhaps we didn't successfully register?"
+      this.emit(
+        "error",
+        new Error(
+          "No signaling key is defined, perhaps we didn't successfully register?"
+        )
       );
       process.exit(1);
     }
 
+    // Override the default response object.
     this.robot.Response = SignalResponse;
 
     this.messageSender = new Api.MessageSender(
@@ -209,10 +226,7 @@ class Signal extends Adapter {
             process.exit(0);
           })
           .catch(err => {
-            this.robot.logger.error(
-              "Error requesting verification code: ",
-              err.stack
-            );
+            this.emit("error", err);
             process.exit(1);
           });
       } else {
@@ -222,10 +236,7 @@ class Signal extends Adapter {
             this._connect();
           })
           .catch(err => {
-            this.robot.logger.error(
-              "Error registering with service: ",
-              err.stack
-            );
+            this.emit("error", err);
             process.exit(1);
           });
       }
