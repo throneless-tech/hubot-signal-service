@@ -1,15 +1,13 @@
 {
-  "parser": "babel-eslint",
   "plugins": [
-    "flowtype",
-    "prettier",
-    "import"
+    "prettier"
   ],
   "extends": [
-    "plugin:flowtype/recommended",
-    "plugin:import/errors",
-    "plugin:import/warnings",
-    "plugin:prettier/recommended",
-    "prettier/flowtype"
-  ]
+    "plugin:prettier/recommended"
+  ],
+  "env": {
+        "es6": true,
+        "node": true,
+        "mocha": true
+  }
 }

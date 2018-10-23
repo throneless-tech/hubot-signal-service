@@ -18,9 +18,7 @@ const Response = require("hubot/es2015").Response;
  * are available to other external Hubot scripts that may want to use them.
  * @class
  */
-// @flow
 class SignalMessage extends TextMessage {
-  // @flow
   constructor(user, body, attachments, timestamp, group) {
     super(user, body, timestamp);
     this.attachments = attachments || [];
@@ -35,14 +33,11 @@ class SignalMessage extends TextMessage {
  * sending attachments to users.
  * @class
  */
-// @flow
 class SignalResponse extends Response {
-  // @flow
   sendAttachments(attachments, ...strings) {
     this.robot.adapter._send(this.envelope, attachments, ...strings);
   }
 
-  // @flow
   replyAttachments(attachments, ...strings) {
     this.robot.adapter._reply(this.envelope, attachments, ...strings);
   }
@@ -54,10 +49,8 @@ class SignalResponse extends Response {
  * the available Hubot Brain object to the Signal library for key storage.
  * @class
  */
-// @flow
 class Signal extends Adapter {
-  // @flow
-  constructor(args?: Array<mixed>): void {
+  constructor(...args) {
     super(args);
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
     this.password = process.env.HUBOT_SIGNAL_PASSWORD;
@@ -70,19 +63,16 @@ class Signal extends Adapter {
     this.loaded = false;
   }
 
-  // @flow
   send(envelope, ...strings) {
     this._send(envelope, [], ...strings);
     this.robot.logger.debug("Sent!");
   }
 
-  // @flow
   reply(envelope, ...strings) {
     this._send(envelope, [], ...strings);
     this.robot.logger.debug("Replied!");
   }
 
-  // @flow
   _send(envelope, attachments, ...strings) {
     if (envelope.room == null) {
       this.emit(
@@ -133,13 +123,11 @@ class Signal extends Adapter {
     }
   }
 
-  // @flow
   _request() {
     this.robot.logger.info("Requesting code.");
     return this.accountManager.requestSMSVerification(this.number);
   }
 
-  // @flow
   _register() {
     this.robot.logger.info("Registering account.");
     return this.accountManager.registerSingleDevice(
@@ -148,7 +136,6 @@ class Signal extends Adapter {
     );
   }
 
-  // @flow
   _receive(source, body, attachments, timestamp, group) {
     if (!group) {
       // Prepend robot name to direct messages that don't include it.
@@ -166,7 +153,6 @@ class Signal extends Adapter {
     );
   }
 
-  // @flow
   _connect() {
     this.robot.logger.debug("Connecting to service.");
     const signalingKey = this.store.get("signaling_key");
@@ -210,7 +196,6 @@ class Signal extends Adapter {
     });
   }
 
-  // @flow
   _run() {
     this.loaded = true;
     this.robot.logger.debug("Received 'loaded' event, running adapter.");
@@ -245,7 +230,6 @@ class Signal extends Adapter {
     }
   }
 
-  // @flow
   run() {
     this.robot.logger.debug("Loading signal-service adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
