@@ -1,6 +1,6 @@
 {
   "name": "@throneless/hubot-signal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Hubot adapter for the Signal messaging service.",
   "main": "src/signal.js",
   "scripts": {
