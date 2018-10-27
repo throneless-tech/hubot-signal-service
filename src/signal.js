@@ -6,7 +6,7 @@
 "use strict";
 
 const ByteBuffer = require("bytebuffer");
-const Api = require("libsignal-service");
+const Api = require("@throneless/libsignal-service");
 const ProtocolStore = require("./protocol_store.js");
 const Adapter = require("hubot/es2015").Adapter;
 const TextMessage = require("hubot/es2015").TextMessage;
