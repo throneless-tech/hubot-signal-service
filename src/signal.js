@@ -50,13 +50,6 @@ class SignalResponse extends Response {
  * @class
  */
 class Signal extends Adapter {
-  constructor(...args) {
-    super(args);
-    this.number = process.env.HUBOT_SIGNAL_NUMBER;
-    this.password = process.env.HUBOT_SIGNAL_PASSWORD;
-    this.loaded = false;
-  }
-
   send(envelope, ...strings) {
     this._send(envelope, [], ...strings);
     this.robot.logger.debug("Sent!");
@@ -225,6 +218,9 @@ class Signal extends Adapter {
   }
 
   run() {
+    this.number = process.env.HUBOT_SIGNAL_NUMBER;
+    this.password = process.env.HUBOT_SIGNAL_PASSWORD;
+    this.loaded = false;
     this.robot.logger.debug("Loading signal-service adapter.");
     this.store = new ProtocolStore(this.robot);
     this.accountManager = new Api.AccountManager(
