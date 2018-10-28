@@ -54,12 +54,6 @@ class Signal extends Adapter {
     super(args);
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
     this.password = process.env.HUBOT_SIGNAL_PASSWORD;
-    this.store = new ProtocolStore(this.robot);
-    this.accountManager = new Api.AccountManager(
-      this.number,
-      this.password,
-      this.store
-    );
     this.loaded = false;
   }
 
@@ -232,6 +226,12 @@ class Signal extends Adapter {
 
   run() {
     this.robot.logger.debug("Loading signal-service adapter.");
+    this.store = new ProtocolStore(this.robot);
+    this.accountManager = new Api.AccountManager(
+      this.number,
+      this.password,
+      this.store
+    );
     // We need to wait until the brain is loaded so we can grab keys.
     this.robot.brain.on("loaded", () => {
       this.loaded || this._run();
