@@ -1,6 +1,6 @@
 {
   "name": "hubot-signal-service",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A Hubot adapter for the Signal messaging service.",
   "main": "src/signal.js",
   "scripts": {
@@ -35,9 +35,9 @@
     ]
   },
   "dependencies": {
+    "@throneless/libsignal-protocol": "^0.1.3",
     "@throneless/libsignal-service": "^0.1.3",
-    "bytebuffer": "^5.0.1",
-    "signal-protocol": "^0.1.3"
+    "bytebuffer": "^5.0.1"
   },
   "peerDependencies": {
     "hubot": "^3.1.1"

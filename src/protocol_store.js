@@ -1,8 +1,8 @@
-var libsignal = require("signal-protocol");
+var libsignal = require("@throneless/libsignal-protocol");
 var helpers = require("./helpers.js");
-//var LocalStorage = require("node-localstorage").LocalStorage;
-//var localStorage = new LocalStorage("./scratch");
 var ByteBuffer = require("bytebuffer");
+
+var TIMESTAMP_THRESHOLD = 5 * 1000; // 5 seconds
 
 var VerifiedStatus = {
   DEFAULT: 0,
@@ -156,28 +156,9 @@ SignalProtocolStore.prototype = {
   getLocalRegistrationId: function() {
     return Promise.resolve(this.get("registrationId"));
   },
-  //put: function(key, value) {
-  //  if (key === undefined || value === undefined || key === null || value === null)
-  //    throw new Error("Tried to store undefined/null");
-  //  this.robot.brain[key] = value;
-  //},
-  //get: function(key, defaultValue) {
-  //  if (key === null || key === undefined)
-  //    throw new Error("Tried to get value for undefined/null key");
-  //  if (key in this.robot.brain) {
-  //    return this.robot.brain[key];
-  //  } else {
-  //    return defaultValue;
-  //  }
-  //},
-  //remove: function(key) {
-  //  if (key === null || key === undefined)
-  //    throw new Error("Tried to remove value for undefined/null key");
-  //  delete this.robot.brain[key];
-  //},
   put: function(key, value) {
     if (value === undefined) throw new Error("Tried to store undefined");
-    this.robot.brain.set("" + key, helpers.jsonThing(value));
+    this.robot.brain.set("" + key, JSON.stringify(value));
     this.robot.brain.save();
   },
 
@@ -458,6 +439,33 @@ SignalProtocolStore.prototype = {
     var collection = [];
     for (id of Object.keys(this.robot.brain.data._private)) {
       if (id.startsWith("unprocessed")) {
+        collection.push(this.get(id));
+      }
+    }
+    return Promise.resolve(collection);
+  },
+  countUnprocessed: function() {
+    var collection = [];
+    for (let id of Object.keys(this.robot.brain.data._private)) {
+      if (id.startsWith("unprocessed")) {
+        collection.push(this.get(id));
+      }
+    }
+    return Promise.resolve(collection.length);
+  },
+  removeAllUnprocessed: function() {
+    var collection = [];
+    for (let id of Object.keys(this.robot.brain.data._private)) {
+      if (id.startsWith("unprocessed")) {
+        this.remove(id);
+      }
+    }
+    return Promise.resolve();
+  },
+  getUnprocessed: function(id) {
+    var collection = [];
+    for (let id of Object.keys(this.robot.brain.data._private)) {
+      if (id.startsWith("unprocessed" + id)) {
         collection.push(this.get(id));
       }
     }
