@@ -80,6 +80,7 @@ class Signal extends Adapter {
           envelope.room,
           text,
           attachments || [],
+          undefined,
           now,
           undefined,
           this.store.get("profileKey")
@@ -97,6 +98,7 @@ class Signal extends Adapter {
           envelope.room,
           text,
           attachments || [],
+          undefined,
           now,
           undefined,
           this.store.get("profileKey")
@@ -124,6 +126,8 @@ class Signal extends Adapter {
   }
 
   _receive(source, body, attachments, timestamp, group) {
+    this.robot.logger.debug("Received message from " + source + ".");
+    let room;
     if (!group) {
       // Prepend robot name to direct messages that don't include it.
       const startOfText = body.indexOf("@") === 0 ? 1 : 0;
@@ -133,8 +137,14 @@ class Signal extends Adapter {
       if (!robotIsNamed) {
         body = `${this.robot.name} ${body}`;
       }
+      room = source;
+    } else {
+      room = group;
     }
-    const user = this.robot.brain.userForId(source);
+    const user = this.robot.brain.userForId(source, {
+      name: source,
+      room: room
+    });
     this.robot.receive(
       new SignalMessage(user, body, attachments, timestamp, group)
     );
@@ -161,6 +171,7 @@ class Signal extends Adapter {
       this.password,
       this.store
     );
+    this.robot.logger.debug("Started MessageSender.");
     const signalingKeyBytes = ByteBuffer.wrap(
       signalingKey,
       "binary"
@@ -171,6 +182,8 @@ class Signal extends Adapter {
       signalingKeyBytes,
       this.store
     );
+    this.messageReceiver.connect();
+    this.robot.logger.debug("Started MessageReceiver.");
     this.messageReceiver.addEventListener("message", ev => {
       const source = ev.data.source.toString();
       this._receive(
@@ -181,6 +194,7 @@ class Signal extends Adapter {
         ev.data.message.group
       );
     });
+    this.robot.logger.debug("Listening for messages.");
   }
 
   _run() {
