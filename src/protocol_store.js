@@ -158,7 +158,7 @@ SignalProtocolStore.prototype = {
   },
   put: function(key, value) {
     if (value === undefined) throw new Error("Tried to store undefined");
-    this.robot.brain.set("" + key, JSON.stringify(value));
+    this.robot.brain.set("" + key, helpers.jsonThing(value));
     this.robot.brain.save();
   },
 
