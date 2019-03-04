@@ -539,22 +539,22 @@ SignalProtocolStore.prototype = {
         groupObject.numberRegistrationIds[finalNumbers[i]] = {};
 
       this.putGroup(groupId, groupObject).then(function() {
-        return { id: groupId, numbers: finalNumbers };
+        return Promise.resolve({ id: groupId, numbers: finalNumbers });
       });
     });
   },
 
   groupsGetNumbers: function(groupId) {
     this.getGroup(groupId).then(function(group) {
-      if (group === undefined) return undefined;
+      if (group === undefined) return Promise.resolve(undefined);
 
-      return group.numbers;
+      return Promise.resolve(group.numbers);
     });
   },
 
   groupsRemoveNumber: function(groupId, number) {
     this.getGroup(groupId).then(function(group) {
-      if (group === undefined) return undefined;
+      if (group === undefined) return Promise.resolve(undefined);
 
       var me = this.userGetNumber();
       if (number == me)
@@ -567,17 +567,17 @@ SignalProtocolStore.prototype = {
         group.numbers.splice(i, 1);
         delete group.numberRegistrationIds[number];
         this.putGroup(groupId, group).then(function() {
-          return group.numbers;
+          return Promise.resolve(group.numbers);
         });
       }
 
-      return group.numbers;
+      return Promise.resolve(group.numbers);
     });
   },
 
   groupsAddNumbers: function(groupId, numbers) {
     this.getGroup(groupId).then(function(group) {
-      if (group === undefined) return undefined;
+      if (group === undefined) return Promise.resolve(undefined);
 
       for (i of numbers) {
         var number = numbers[i];
@@ -590,20 +590,20 @@ SignalProtocolStore.prototype = {
       }
 
       this.putGroup(groupId, group).then(function() {
-        return group.numbers;
+        return Promise.resolve(group.numbers);
       });
     });
   },
 
   groupsDeleteGroup: function(groupId) {
-    return this.removeGroup(groupId);
+    return Promise.resolve(this.removeGroup(groupId));
   },
 
   groupsGetGroup: function(groupId) {
     this.getGroup(groupId).then(function(group) {
-      if (group === undefined) return undefined;
+      if (group === undefined) return Promise.resolve(undefined);
 
-      return { id: groupId, numbers: group.numbers };
+      return Promise.resolve({ id: groupId, numbers: group.numbers });
     });
   },
 
@@ -616,10 +616,10 @@ SignalProtocolStore.prototype = {
         throw new Error("Invalid number in new group members");
 
       var added = numbers.filter(function(number) {
-        return group.numbers.indexOf(number) < 0;
+        return Promise.resolve(group.numbers.indexOf(number) < 0);
       });
 
-      return this.groupsAddNumbers(groupId, added);
+      return Promise.resolve(this.groupsAddNumbers(groupId, added));
     });
   }
 };
