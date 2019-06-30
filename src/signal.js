@@ -81,9 +81,12 @@ class Signal extends Adapter {
           text,
           attachments || [],
           undefined,
+          undefined,
+          undefined,
           now,
           undefined,
-          this.store.get("profileKey")
+          this.store.get("profileKey"),
+          undefined
         )
         .then(result => {
           this.robot.logger.debug(result);
