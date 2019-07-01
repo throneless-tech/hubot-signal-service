@@ -460,7 +460,7 @@ SignalProtocolStore.prototype = {
     return Promise.resolve();
   },
   getUnprocessed: function(id) {
-    for (let key of this.store._keys) {
+    for (let key of Object.keys(this.robot.brain.data._private)) {
       if (key == "unprocessed" + id) {
         return this.get(key);
       }
