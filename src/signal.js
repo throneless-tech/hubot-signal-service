@@ -155,12 +155,11 @@ class Signal extends Adapter {
 
   _connect() {
     this.robot.logger.debug("Connecting to service.");
-    const signalingKey = this.store.get("signaling_key");
-    if (!signalingKey) {
+    if (!this.store.get("registrationId")) {
       this.emit(
         "error",
         new Error(
-          "No signaling key is defined, perhaps we didn't successfully register?"
+          "No registrationId is defined, perhaps we didn't successfully register?"
         )
       );
       process.exit(1);
@@ -175,16 +174,27 @@ class Signal extends Adapter {
       this.store
     );
     this.robot.logger.debug("Started MessageSender.");
-    const signalingKeyBytes = ByteBuffer.wrap(
-      signalingKey,
-      "binary"
-    ).toArrayBuffer();
-    this.messageReceiver = new Api.MessageReceiver(
-      this.number.concat(".1"),
-      this.password,
-      signalingKeyBytes,
-      this.store
-    );
+    const signalingKey = this.store.get("signaling_key");
+    if (signalingKey) {
+      const signalingKeyBytes = ByteBuffer.wrap(
+        signalingKey,
+        "binary"
+      ).toArrayBuffer();
+      this.messageReceiver = new Api.MessageReceiver(
+        this.number.concat(".1"),
+        this.password,
+        signalingKeyBytes,
+        this.store
+      );
+    } else {
+      this.messageReceiver = new Api.MessageReceiver(
+        this.number.concat(".1"),
+        this.password,
+        [],
+        this.store
+      );
+    }
+
     this.messageReceiver.connect();
     this.robot.logger.debug("Started MessageReceiver.");
     this.messageReceiver.addEventListener("message", ev => {
