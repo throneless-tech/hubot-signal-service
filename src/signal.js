@@ -72,8 +72,9 @@ class Signal extends Adapter {
     }
     const text = strings.join();
     const now = Date.now();
-    const group = this.store.groupsGetGroup(envelope.room);
-    if (group === null || group === undefined) {
+    const numbers = this.store.groupsGetNumbers(envelope.room);
+    console.log("Room is: ", envelope.room, ", numbers are: ", numbers);
+    if (numbers === null || numbers === undefined) {
       this.robot.logger.debug("Sending direct message to " + envelope.room);
       this.messageSender
         .sendMessageToNumber(
@@ -99,12 +100,16 @@ class Signal extends Adapter {
       this.messageSender
         .sendMessageToGroup(
           envelope.room,
+          numbers,
           text,
           attachments || [],
           undefined,
+          undefined,
+          undefined,
           now,
           undefined,
-          this.store.get("profileKey")
+          this.store.get("profileKey"),
+          undefined
         )
         .then(result => {
           this.robot.logger.debug(result);
@@ -128,7 +133,7 @@ class Signal extends Adapter {
     );
   }
 
-  _receive(source, body, attachments, timestamp, group) {
+  _receive(source, body = "", attachments, timestamp, group) {
     this.robot.logger.debug("Received message from " + source + ".");
     let room;
     if (!group) {
@@ -199,12 +204,14 @@ class Signal extends Adapter {
     this.robot.logger.debug("Started MessageReceiver.");
     this.messageReceiver.addEventListener("message", ev => {
       const source = ev.data.source.toString();
+      const body = ev.data.message.body ? ev.data.message.body.toString() : "";
+      const group = ev.data.message.group ? ev.data.message.group.id : null;
       this._receive(
         source,
-        ev.data.message.body.toString(),
+        body,
         ev.data.message.attachments,
         ev.data.timestamp.toString(),
-        ev.data.message.group
+        group
       );
     });
     this.robot.logger.debug("Listening for messages.");
