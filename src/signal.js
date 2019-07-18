@@ -73,7 +73,6 @@ class Signal extends Adapter {
     const text = strings.join();
     const now = Date.now();
     const numbers = this.store.groupsGetNumbers(envelope.room);
-    console.log("Room is: ", envelope.room, ", numbers are: ", numbers);
     if (numbers === null || numbers === undefined) {
       this.robot.logger.debug("Sending direct message to " + envelope.room);
       this.messageSender
