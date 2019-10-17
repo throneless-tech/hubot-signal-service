@@ -231,33 +231,35 @@ class Signal extends Adapter {
   _run() {
     this.loaded = true;
     this.robot.logger.debug("Received 'loaded' event, running adapter.");
-    if (!this.store.getProfileKey()) {
-      if (!process.env.HUBOT_SIGNAL_CODE) {
-        Promise.resolve(this._request())
-          .then(result => {
-            this.robot.logger.info(
-              `Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`
-            );
-            process.exit(0);
-          })
-          .catch(err => {
-            this.emit("error", err);
-            process.exit(1);
-          });
+    this.store.getProfileKey().then(key => {
+      if (!key) {
+        if (!process.env.HUBOT_SIGNAL_CODE) {
+          Promise.resolve(this._request())
+            .then(result => {
+              this.robot.logger.info(
+                `Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`
+              );
+              process.exit(0);
+            })
+            .catch(err => {
+              this.emit("error", err);
+              process.exit(1);
+            });
+        } else {
+          Promise.resolve(this._register())
+            .then(result => {
+              this.robot.logger.info(result);
+              this._connect();
+            })
+            .catch(err => {
+              this.emit("error", err);
+              process.exit(1);
+            });
+        }
       } else {
-        Promise.resolve(this._register())
-          .then(result => {
-            this.robot.logger.info(result);
-            this._connect();
-          })
-          .catch(err => {
-            this.emit("error", err);
-            process.exit(1);
-          });
+        this._connect();
       }
-    } else {
-      this._connect();
-    }
+    });
   }
 
   run() {
