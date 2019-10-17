@@ -94,7 +94,7 @@ class Signal extends Adapter {
       return;
     }
     const text = strings.join();
-    const numbers = this.store.groupsGetNumbers(envelope.room);
+    const numbers = this.store.getGroupNumbers(envelope.room);
     if (numbers === null || numbers === undefined) {
       this.robot.logger.debug("Sending direct message to " + envelope.room);
       this.messageSender
