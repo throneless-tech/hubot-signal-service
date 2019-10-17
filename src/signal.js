@@ -5,6 +5,8 @@
 
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
 const ByteBuffer = require("bytebuffer");
 const Api = require("@throneless/libsignal-service");
 const ProtocolStore = require("./protocol_store.js");
@@ -35,10 +37,32 @@ class SignalMessage extends TextMessage {
  */
 class SignalResponse extends Response {
   sendAttachments(attachments, ...strings) {
-    this.robot.adapter._send(this.envelope, attachments, ...strings);
+    const attachmentPointers = [];
+    if (typeof attachments === "string") {
+      attachments = [attachments];
+    }
+    if (typeof attachments === "array") {
+      attachments.map(path => {
+        Api.AttachmentHelper.loadFile(path).then(file => {
+          attachmentPointers.push(file);
+        });
+      });
+    }
+    this.robot.adapter._send(this.envelope, attachmentPointers, ...strings);
   }
 
   replyAttachments(attachments, ...strings) {
+    const attachmentPointers = [];
+    if (typeof attachments === "string") {
+      attachments = [attachments];
+    }
+    if (typeof attachments === "array") {
+      attachments.map(path => {
+        Api.AttachmentHelper.loadFile(path).then(file => {
+          attachmentPointers.push(file);
+        });
+      });
+    }
     this.robot.adapter._reply(this.envelope, attachments, ...strings);
   }
 }
@@ -71,23 +95,15 @@ class Signal extends Adapter {
       return;
     }
     const text = strings.join();
-    const now = Date.now();
     const numbers = this.store.groupsGetNumbers(envelope.room);
     if (numbers === null || numbers === undefined) {
       this.robot.logger.debug("Sending direct message to " + envelope.room);
       this.messageSender
-        .sendMessageToNumber(
-          envelope.room,
-          text,
-          attachments || [],
-          undefined,
-          undefined,
-          undefined,
-          now,
-          undefined,
-          this.store.get("profileKey"),
-          undefined
-        )
+        .sendMessageToNumber({
+          number: envelope.room,
+          body: text,
+          attachments: attachments || []
+        })
         .then(result => {
           this.robot.logger.debug(result);
         })
@@ -97,19 +113,12 @@ class Signal extends Adapter {
     } else {
       this.robot.logger.debug("Sending message to group " + envelope.room);
       this.messageSender
-        .sendMessageToGroup(
-          envelope.room,
-          numbers,
-          text,
-          attachments || [],
-          undefined,
-          undefined,
-          undefined,
-          now,
-          undefined,
-          this.store.get("profileKey"),
-          undefined
-        )
+        .sendMessageToGroup({
+          groupId: envelope.room,
+          groupNumbers: numbers,
+          body: text,
+          attachments: attachments || []
+        })
         .then(result => {
           this.robot.logger.debug(result);
         })
@@ -121,13 +130,12 @@ class Signal extends Adapter {
 
   _request() {
     this.robot.logger.info("Requesting code.");
-    return this.accountManager.requestSMSVerification(this.number);
+    return this.accountManager.requestSMSVerification();
   }
 
   _register() {
     this.robot.logger.info("Registering account.");
     return this.accountManager.registerSingleDevice(
-      this.number,
       process.env.HUBOT_SIGNAL_CODE
     );
   }
@@ -159,7 +167,7 @@ class Signal extends Adapter {
 
   _connect() {
     this.robot.logger.debug("Connecting to service.");
-    if (!this.store.get("registrationId")) {
+    if (!this.store.getRegistrationId()) {
       this.emit(
         "error",
         new Error(
@@ -172,61 +180,64 @@ class Signal extends Adapter {
     // Override the default response object.
     this.robot.Response = SignalResponse;
 
-    this.messageSender = new Api.MessageSender(
-      this.number,
-      this.password,
-      this.store
-    );
-    this.robot.logger.debug("Started MessageSender.");
-    const signalingKey = this.store.get("signaling_key");
-    if (signalingKey) {
-      const signalingKeyBytes = ByteBuffer.wrap(
-        signalingKey,
-        "binary"
-      ).toArrayBuffer();
-      this.messageReceiver = new Api.MessageReceiver(
-        this.number.concat(".1"),
-        this.password,
-        signalingKeyBytes,
-        this.store
-      );
-    } else {
-      this.messageReceiver = new Api.MessageReceiver(
-        this.number.concat(".1"),
-        this.password,
-        [],
-        this.store
-      );
-    }
+    this.messageSender = new Api.MessageSender(this.store);
+    this.messageSender
+      .connect()
+      .then(this.robot.logger.debug("Started MessageSender."));
+    this.messageReceiver = new Api.MessageReceiver(this.store);
 
-    this.messageReceiver.connect();
-    this.robot.logger.debug("Started MessageReceiver.");
-    this.messageReceiver.addEventListener("message", ev => {
-      const source = ev.data.source.toString();
-      const body = ev.data.message.body ? ev.data.message.body.toString() : "";
-      const group = ev.data.message.group ? ev.data.message.group.id : null;
-      this._receive(
-        source,
-        body,
-        ev.data.message.attachments,
-        ev.data.timestamp.toString(),
-        group
-      );
+    this.messageReceiver.connect().then(() => {
+      this.robot.logger.debug("Started MessageReceiver.");
+      this.messageReceiver.addEventListener("message", ev => {
+        if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
+          const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNOADS);
+          fs.promises
+            .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
+            .then(() => {
+              ev.data.message.attachments.map(attachment => {
+                this.messageReceiver
+                  .handleAttachment(attachment)
+                  .then(attachmentPointer => {
+                    Api.AttachmentHelper.saveFile(attachmentPointer, "./").then(
+                      fileName => {
+                        this.robot.logger.info("Wrote file to: ", fileName);
+                      }
+                    );
+                  });
+              });
+            })
+            .catch(() =>
+              this.robot.logger.error(
+                "Can't write attachment to HUBOT_SIGNAL_DOWNLOADS."
+              )
+            );
+        }
+        const source = ev.data.source.toString();
+        const body = ev.data.message.body
+          ? ev.data.message.body.toString()
+          : "";
+        const group = ev.data.message.group ? ev.data.message.group.id : null;
+        this._receive(
+          source,
+          body,
+          ev.data.message.attachments,
+          ev.data.timestamp.toString(),
+          group
+        );
+      });
+      this.robot.logger.debug("Listening for messages.");
     });
-    this.robot.logger.debug("Listening for messages.");
   }
 
   _run() {
     this.loaded = true;
     this.robot.logger.debug("Received 'loaded' event, running adapter.");
-    if (!this.store.get("profileKey")) {
+    if (!this.store.getProfileKey()) {
       if (!process.env.HUBOT_SIGNAL_CODE) {
         Promise.resolve(this._request())
           .then(result => {
             this.robot.logger.info(
-              `Sending verification code to ${
-                this.number
-              }. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`
+              `Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`
             );
             process.exit(0);
           })
@@ -252,21 +263,34 @@ class Signal extends Adapter {
 
   run() {
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
-    this.password = process.env.HUBOT_SIGNAL_PASSWORD;
     this.loaded = false;
     this.robot.logger.debug("Loading signal-service adapter.");
-    this.store = new ProtocolStore(this.robot);
-    this.accountManager = new Api.AccountManager(
-      this.number,
-      this.password,
-      this.store
-    );
-    // We need to wait until the brain is loaded so we can grab keys.
-    this.robot.brain.on("loaded", () => {
-      this.loaded || this._run();
-    });
-    // Lies!
-    this.emit("connected");
+    this.store = new Api.ProtocolStore(new ProtocolStore(this.robot));
+    this.store
+      .load()
+      .then(this.store.getPassword())
+      .then(password => {
+        if (!password) {
+          password = Api.KeyHelper.generatePassword();
+          this.store.setPassword(password);
+        }
+
+        this.accountManager = new Api.AccountManager(
+          this.number,
+          password,
+          this.store
+        );
+        // We need to wait until the brain is loaded so we can grab keys.
+        this.robot.brain.on("loaded", () => {
+          this.loaded || this._run();
+        });
+        // Lies!
+        this.emit("connected");
+      })
+      .catch(err => {
+        this.emit("error", err);
+        process.exit(1);
+      });
   }
 }
 
