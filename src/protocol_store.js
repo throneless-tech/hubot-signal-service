@@ -201,7 +201,7 @@ class Storage {
   }
 
   async removeAll() {
-    this._store.clear();
+    this._store.data._private = {};
   }
 }
 
