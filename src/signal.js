@@ -231,8 +231,8 @@ class Signal extends Adapter {
   _run() {
     this.loaded = true;
     this.robot.logger.debug("Received 'loaded' event, running adapter.");
-    this.store.getProfileKey().then(key => {
-      if (!key) {
+    this.store.getLocalRegistrationId().then(id => {
+      if (!id) {
         if (!process.env.HUBOT_SIGNAL_CODE) {
           Promise.resolve(this._request())
             .then(result => {
