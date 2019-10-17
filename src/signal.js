@@ -94,37 +94,38 @@ class Signal extends Adapter {
       return;
     }
     const text = strings.join();
-    const numbers = this.store.getGroupNumbers(envelope.room);
-    if (numbers === null || numbers === undefined) {
-      this.robot.logger.debug("Sending direct message to " + envelope.room);
-      this.messageSender
-        .sendMessageToNumber({
-          number: envelope.room,
-          body: text,
-          attachments: attachments || []
-        })
-        .then(result => {
-          this.robot.logger.debug(result);
-        })
-        .catch(err => {
-          this.emit("error", err);
-        });
-    } else {
-      this.robot.logger.debug("Sending message to group " + envelope.room);
-      this.messageSender
-        .sendMessageToGroup({
-          groupId: envelope.room,
-          groupNumbers: numbers,
-          body: text,
-          attachments: attachments || []
-        })
-        .then(result => {
-          this.robot.logger.debug(result);
-        })
-        .catch(err => {
-          this.emit("error", err);
-        });
-    }
+    this.store.getGroupNumbers(envelope.room).then(numbers => {
+      if (numbers === null || numbers === undefined) {
+        this.robot.logger.debug("Sending direct message to " + envelope.room);
+        this.messageSender
+          .sendMessageToNumber({
+            number: envelope.room,
+            body: text,
+            attachments: attachments || []
+          })
+          .then(result => {
+            this.robot.logger.debug(result);
+          })
+          .catch(err => {
+            this.emit("error", err);
+          });
+      } else {
+        this.robot.logger.debug("Sending message to group " + envelope.room);
+        this.messageSender
+          .sendMessageToGroup({
+            groupId: envelope.room,
+            groupNumbers: numbers,
+            body: text,
+            attachments: attachments || []
+          })
+          .then(result => {
+            this.robot.logger.debug(result);
+          })
+          .catch(err => {
+            this.emit("error", err);
+          });
+      }
+    });
   }
 
   _request() {
@@ -166,65 +167,68 @@ class Signal extends Adapter {
 
   _connect() {
     this.robot.logger.debug("Connecting to service.");
-    if (!this.store.getLocalRegistrationId()) {
-      this.emit(
-        "error",
-        new Error(
-          "No registrationId is defined, perhaps we didn't successfully register?"
-        )
-      );
-      process.exit(1);
-    }
-
-    // Override the default response object.
-    this.robot.Response = SignalResponse;
-
-    this.messageSender = new Api.MessageSender(this.store);
-    this.messageSender
-      .connect()
-      .then(this.robot.logger.debug("Started MessageSender."));
-    this.messageReceiver = new Api.MessageReceiver(this.store);
-
-    this.messageReceiver.connect().then(() => {
-      this.robot.logger.debug("Started MessageReceiver.");
-      this.messageReceiver.addEventListener("message", ev => {
-        if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
-          const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNLOADS);
-          fs.promises
-            .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
-            .then(() => {
-              ev.data.message.attachments.map(attachment => {
-                this.messageReceiver
-                  .handleAttachment(attachment)
-                  .then(attachmentPointer => {
-                    Api.AttachmentHelper.saveFile(attachmentPointer, "./").then(
-                      fileName => {
-                        this.robot.logger.info("Wrote file to: ", fileName);
-                      }
-                    );
-                  });
-              });
-            })
-            .catch(() =>
-              this.robot.logger.error(
-                "Can't write attachment to HUBOT_SIGNAL_DOWNLOADS."
-              )
-            );
-        }
-        const source = ev.data.source.toString();
-        const body = ev.data.message.body
-          ? ev.data.message.body.toString()
-          : "";
-        const group = ev.data.message.group ? ev.data.message.group.id : null;
-        this._receive(
-          source,
-          body,
-          ev.data.message.attachments,
-          ev.data.timestamp.toString(),
-          group
+    this.store.getLocalRegistrationId().then(id => {
+      if (!id) {
+        this.emit(
+          "error",
+          new Error(
+            "No registrationId is defined, perhaps we didn't successfully register?"
+          )
         );
+        process.exit(1);
+      }
+
+      // Override the default response object.
+      this.robot.Response = SignalResponse;
+
+      this.messageSender = new Api.MessageSender(this.store);
+      this.messageSender
+        .connect()
+        .then(this.robot.logger.debug("Started MessageSender."));
+      this.messageReceiver = new Api.MessageReceiver(this.store);
+
+      this.messageReceiver.connect().then(() => {
+        this.robot.logger.debug("Started MessageReceiver.");
+        this.messageReceiver.addEventListener("message", ev => {
+          if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
+            const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNLOADS);
+            fs.promises
+              .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
+              .then(() => {
+                ev.data.message.attachments.map(attachment => {
+                  this.messageReceiver
+                    .handleAttachment(attachment)
+                    .then(attachmentPointer => {
+                      Api.AttachmentHelper.saveFile(
+                        attachmentPointer,
+                        "./"
+                      ).then(fileName => {
+                        this.robot.logger.info("Wrote file to: ", fileName);
+                      });
+                    });
+                });
+              })
+              .catch(() =>
+                this.robot.logger.error(
+                  "Can't write attachment to HUBOT_SIGNAL_DOWNLOADS."
+                )
+              );
+          }
+          const source = ev.data.source.toString();
+          const body = ev.data.message.body
+            ? ev.data.message.body.toString()
+            : "";
+          const group = ev.data.message.group ? ev.data.message.group.id : null;
+          this._receive(
+            source,
+            body,
+            ev.data.message.attachments,
+            ev.data.timestamp.toString(),
+            group
+          );
+        });
+        this.robot.logger.debug("Listening for messages.");
       });
-      this.robot.logger.debug("Listening for messages.");
     });
   }
 
