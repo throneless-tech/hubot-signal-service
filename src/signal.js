@@ -7,7 +7,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const ByteBuffer = require("bytebuffer");
 const Api = require("@throneless/libsignal-service");
 const ProtocolStore = require("./protocol_store.js");
 const Adapter = require("hubot/es2015").Adapter;
