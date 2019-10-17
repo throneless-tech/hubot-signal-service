@@ -166,7 +166,7 @@ class Signal extends Adapter {
 
   _connect() {
     this.robot.logger.debug("Connecting to service.");
-    if (!this.store.getRegistrationId()) {
+    if (!this.store.getLocalRegistrationId()) {
       this.emit(
         "error",
         new Error(
