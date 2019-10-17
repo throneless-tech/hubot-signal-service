@@ -189,7 +189,7 @@ class Signal extends Adapter {
       this.robot.logger.debug("Started MessageReceiver.");
       this.messageReceiver.addEventListener("message", ev => {
         if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
-          const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNOADS);
+          const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNLOADS);
           fs.promises
             .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
             .then(() => {
