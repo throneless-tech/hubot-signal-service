@@ -201,7 +201,7 @@ class Signal extends Adapter {
                     .then(attachmentPointer => {
                       Api.AttachmentHelper.saveFile(
                         attachmentPointer,
-                        "./"
+                        savePath
                       ).then(fileName => {
                         this.robot.logger.info("Wrote file to: ", fileName);
                       });
@@ -235,41 +235,6 @@ class Signal extends Adapter {
   _run() {
     this.loaded = true;
     this.robot.logger.debug("Received 'loaded' event, running adapter.");
-    this.store.getLocalRegistrationId().then(id => {
-      if (!id) {
-        if (!process.env.HUBOT_SIGNAL_CODE) {
-          Promise.resolve(this._request())
-            .then(result => {
-              this.robot.logger.info(
-                `Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`
-              );
-              process.exit(0);
-            })
-            .catch(err => {
-              this.emit("error", err);
-              process.exit(1);
-            });
-        } else {
-          Promise.resolve(this._register())
-            .then(result => {
-              this.robot.logger.info(result);
-              this._connect();
-            })
-            .catch(err => {
-              this.emit("error", err);
-              process.exit(1);
-            });
-        }
-      } else {
-        this._connect();
-      }
-    });
-  }
-
-  run() {
-    this.number = process.env.HUBOT_SIGNAL_NUMBER;
-    this.loaded = false;
-    this.robot.logger.debug("Loading signal-service adapter.");
     this.store = new Api.ProtocolStore(new ProtocolStore(this.robot));
     this.store
       .load()
@@ -285,17 +250,42 @@ class Signal extends Adapter {
           password,
           this.store
         );
-        // We need to wait until the brain is loaded so we can grab keys.
-        this.robot.brain.on("loaded", () => {
-          this.loaded || this._run();
+        this.store.getLocalRegistrationId().then(id => {
+          if (!id) {
+            if (!process.env.HUBOT_SIGNAL_CODE) {
+              Promise.resolve(this._request()).then(result => {
+                this.robot.logger.info(
+                  `Sending verification code to ${this.number}. Once you receive the code, start the bot again while supplying the code via the environment variable HUBOT_SIGNAL_CODE.`
+                );
+                process.exit(0);
+              });
+            } else {
+              Promise.resolve(this._register()).then(result => {
+                this.robot.logger.info(result);
+                this._connect();
+              });
+            }
+          } else {
+            this._connect();
+          }
         });
-        // Lies!
-        this.emit("connected");
       })
       .catch(err => {
         this.emit("error", err);
         process.exit(1);
       });
+  }
+
+  run() {
+    this.number = process.env.HUBOT_SIGNAL_NUMBER;
+    this.loaded = false;
+    this.robot.logger.debug("Loading signal-service adapter.");
+    // We need to wait until the brain is loaded so we can grab keys.
+    this.robot.brain.on("loaded", () => {
+      this.loaded || this._run();
+    });
+    // Lies!
+    this.emit("connected");
   }
 }
 
