@@ -154,6 +154,7 @@ class Signal extends Adapter {
       }
       room = source;
     } else {
+      this.robot.logger.debug("Message is in group " + group + ".");
       room = group;
     }
     const user = this.robot.brain.userForId(source, {
@@ -234,11 +235,10 @@ class Signal extends Adapter {
 
   _run() {
     this.loaded = true;
-    this.robot.logger.debug("Received 'loaded' event, running adapter.");
     this.store = new Api.ProtocolStore(new ProtocolStore(this.robot));
     this.store
       .load()
-      .then(this.store.getPassword())
+      .then(() => this.store.getPassword())
       .then(password => {
         if (!password) {
           password = Api.KeyHelper.generatePassword();
@@ -282,6 +282,7 @@ class Signal extends Adapter {
     this.robot.logger.debug("Loading signal-service adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
     this.robot.brain.on("loaded", () => {
+      this.robot.logger.debug("Received 'loaded' event, running adapter.");
       this.loaded || this._run();
     });
     // Lies!

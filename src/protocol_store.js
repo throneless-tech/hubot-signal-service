@@ -7,13 +7,13 @@ class Storage {
   }
 
   _put(namespace, id, data) {
-    this._store.set("" + namespace + id, helpers.jsonThing(data));
+    this._store.set("" + namespace + id, helpers.ensureStringed(data));
     this._store.save();
   }
 
   _get(namespace, id) {
     const value = this._store.get("" + namespace + id);
-    return JSON.parse(value);
+    return value;
   }
 
   _getAll(namespace) {
