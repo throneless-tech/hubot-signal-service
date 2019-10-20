@@ -169,6 +169,7 @@ class Signal extends Adapter {
   }
 
   _connect() {
+    const attachmentPaths = [];
     this.robot.logger.debug("Connecting to service.");
     this.store.getLocalRegistrationId().then(id => {
       if (!id) {
@@ -207,6 +208,7 @@ class Signal extends Adapter {
                         savePath
                       ).then(fileName => {
                         this.robot.logger.info("Wrote file to: ", fileName);
+                        attachmentPaths.push(fileName);
                       });
                     });
                 });
@@ -225,7 +227,7 @@ class Signal extends Adapter {
           this._receive(
             source,
             body,
-            ev.data.message.attachments,
+            attachmentPaths,
             ev.data.timestamp.toString(),
             group
           );
