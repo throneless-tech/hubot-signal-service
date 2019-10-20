@@ -130,14 +130,18 @@ class Signal extends Adapter {
 
   _request() {
     this.robot.logger.info("Requesting code.");
-    return this.accountManager.requestSMSVerification();
+    return this.accountManager
+      .requestSMSVerification()
+      .then(result => this.robot.logger.debug(result))
+      .catch(err => this.emit("error", err));
   }
 
   _register() {
     this.robot.logger.info("Registering account.");
-    return this.accountManager.registerSingleDevice(
-      process.env.HUBOT_SIGNAL_CODE
-    );
+    return this.accountManager
+      .registerSingleDevice(process.env.HUBOT_SIGNAL_CODE)
+      .then(result => this.robot.logger.debug(result))
+      .catch(err => this.emit("error", err));
   }
 
   _receive(source, body = "", attachments, timestamp, group) {
