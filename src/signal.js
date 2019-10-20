@@ -132,7 +132,6 @@ class Signal extends Adapter {
     this.robot.logger.info("Requesting code.");
     return this.accountManager
       .requestSMSVerification()
-      .then(result => this.robot.logger.debug(result))
       .catch(err => this.emit("error", err));
   }
 
@@ -140,7 +139,6 @@ class Signal extends Adapter {
     this.robot.logger.info("Registering account.");
     return this.accountManager
       .registerSingleDevice(process.env.HUBOT_SIGNAL_CODE)
-      .then(result => this.robot.logger.debug(result))
       .catch(err => this.emit("error", err));
   }
 
@@ -238,7 +236,6 @@ class Signal extends Adapter {
   }
 
   _run() {
-    this.loaded = true;
     this.store = new Api.ProtocolStore(new ProtocolStore(this.robot));
     this.store
       .load()
@@ -282,12 +279,11 @@ class Signal extends Adapter {
 
   run() {
     this.number = process.env.HUBOT_SIGNAL_NUMBER;
-    this.loaded = false;
     this.robot.logger.debug("Loading signal-service adapter.");
     // We need to wait until the brain is loaded so we can grab keys.
-    this.robot.brain.on("loaded", () => {
+    this.robot.brain.once("loaded", () => {
       this.robot.logger.debug("Received 'loaded' event, running adapter.");
-      this.loaded || this._run();
+      this._run();
     });
     // Lies!
     this.emit("connected");
