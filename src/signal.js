@@ -198,36 +198,39 @@ class Signal extends Adapter {
             ? ev.data.message.body.toString()
             : "";
           const group = ev.data.message.group ? ev.data.message.group.id : null;
+          const attachmentPaths = [];
           if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
             const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNLOADS);
             fs.promises
               .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
               .then(() => {
-                const attachmentPaths = [];
+                const promises = [];
                 ev.data.message.attachments.map(attachment => {
-                  this.messageReceiver
-                    .handleAttachment(attachment)
-                    .then(attachmentPointer => {
-                      Api.AttachmentHelper.saveFile(
-                        attachmentPointer,
-                        savePath
-                      ).then(fileName => {
+                  promises.push(
+                    this.messageReceiver
+                      .handleAttachment(attachment)
+                      .then(attachmentPointer =>
+                        Api.AttachmentHelper.saveFile(
+                          attachmentPointer,
+                          savePath
+                        )
+                      )
+                      .then(fileName => {
                         this.robot.logger.info("Wrote file to: ", fileName);
-                        attachmentPaths.push(fileName);
-                      });
-                    });
+                        return fileName;
+                      })
+                  );
                 });
-                return attachmentPaths;
+                Promise.all(promises).then(paths => {
+                  this._receive(
+                    source,
+                    body,
+                    paths,
+                    ev.data.timestamp.toString(),
+                    group
+                  );
+                });
               })
-              .then(paths =>
-                this._receive(
-                  source,
-                  body,
-                  paths,
-                  ev.data.timestamp.toString(),
-                  group
-                )
-              )
               .catch(err =>
                 this.robot.logger.error("Error receiving message: ", err)
               );
