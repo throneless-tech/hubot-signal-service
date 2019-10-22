@@ -169,8 +169,6 @@ class Signal extends Adapter {
   }
 
   _connect() {
-    const attachmentPaths = [];
-    let promise = Promise.resolve();
     this.robot.logger.debug("Connecting to service.");
     this.store.getLocalRegistrationId().then(id => {
       if (!id) {
@@ -195,11 +193,17 @@ class Signal extends Adapter {
       this.messageReceiver.connect().then(() => {
         this.robot.logger.debug("Started MessageReceiver.");
         this.messageReceiver.addEventListener("message", ev => {
+          const source = ev.data.source.toString();
+          const body = ev.data.message.body
+            ? ev.data.message.body.toString()
+            : "";
+          const group = ev.data.message.group ? ev.data.message.group.id : null;
           if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
             const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNLOADS);
-            promise = fs.promises
+            fs.promises
               .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
               .then(() => {
+                const attachmentPaths = [];
                 ev.data.message.attachments.map(attachment => {
                   this.messageReceiver
                     .handleAttachment(attachment)
@@ -213,27 +217,29 @@ class Signal extends Adapter {
                       });
                     });
                 });
+                return attachmentPaths;
               })
-              .catch(() =>
-                this.robot.logger.error(
-                  "Can't write attachment to HUBOT_SIGNAL_DOWNLOADS."
+              .then(paths =>
+                this._receive(
+                  source,
+                  body,
+                  paths,
+                  ev.data.timestamp.toString(),
+                  group
                 )
+              )
+              .catch(err =>
+                this.robot.logger.error("Error receiving message: ", err)
               );
-          }
-          const source = ev.data.source.toString();
-          const body = ev.data.message.body
-            ? ev.data.message.body.toString()
-            : "";
-          const group = ev.data.message.group ? ev.data.message.group.id : null;
-          promise.then(() =>
+          } else {
             this._receive(
               source,
               body,
-              attachmentPaths,
+              [],
               ev.data.timestamp.toString(),
               group
-            )
-          );
+            );
+          }
         });
         this.robot.logger.debug("Listening for messages.");
       });
