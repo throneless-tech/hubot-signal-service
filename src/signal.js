@@ -170,6 +170,7 @@ class Signal extends Adapter {
 
   _connect() {
     const attachmentPaths = [];
+    let promise = Promise.resolve();
     this.robot.logger.debug("Connecting to service.");
     this.store.getLocalRegistrationId().then(id => {
       if (!id) {
@@ -196,7 +197,7 @@ class Signal extends Adapter {
         this.messageReceiver.addEventListener("message", ev => {
           if (process.env.HUBOT_SIGNAL_DOWNLOADS) {
             const savePath = path.normalize(process.env.HUBOT_SIGNAL_DOWNLOADS);
-            fs.promises
+            promise = fs.promises
               .access(savePath, fs.constants.R_OK | fs.constants.W_OK)
               .then(() => {
                 ev.data.message.attachments.map(attachment => {
@@ -224,12 +225,14 @@ class Signal extends Adapter {
             ? ev.data.message.body.toString()
             : "";
           const group = ev.data.message.group ? ev.data.message.group.id : null;
-          this._receive(
-            source,
-            body,
-            attachmentPaths,
-            ev.data.timestamp.toString(),
-            group
+          promise.then(() =>
+            this._receive(
+              source,
+              body,
+              attachmentPaths,
+              ev.data.timestamp.toString(),
+              group
+            )
           );
         });
         this.robot.logger.debug("Listening for messages.");
