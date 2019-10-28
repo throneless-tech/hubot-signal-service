@@ -222,6 +222,7 @@ class Signal extends Adapter {
                   );
                 });
                 Promise.all(promises).then(paths => {
+                  ev.confirm();
                   this._receive(
                     source,
                     body,
@@ -235,6 +236,7 @@ class Signal extends Adapter {
                 this.robot.logger.error("Error receiving message: ", err)
               );
           } else {
+            ev.confirm();
             this._receive(
               source,
               body,
